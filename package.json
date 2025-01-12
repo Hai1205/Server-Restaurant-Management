@@ -1,5 +1,5 @@
 {
-  "name": "server-user-management",
+  "name": "server-restaurant-management",
   "version": "0.0.1",
   "description": "",
   "author": {
@@ -34,6 +34,7 @@
     "mongoose": "^8.9.4",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.1",
+    "server-restaurant-management": "file:",
     "server-user-management": "file:"
   },
   "devDependencies": {
