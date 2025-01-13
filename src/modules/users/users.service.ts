@@ -52,12 +52,12 @@ export class UsersService {
   async findAll(query: string, current: number, pageSize: number) {
     const { filter, sort } = aqp(query)
 
-    if(filter.current) delete filter.current
-    if(filter.pageSize) delete filter.pageSize
-    if (!current) current = 1
-    if (!pageSize) pageSize = 5
+    delete filter.current
+    delete filter.pageSize
+    if (!current || current < 1) current = 1
+    if (!pageSize || pageSize < 1) pageSize = 5
 
-    const totalItems = (await this.userModel.find(filter)).length;
+    const totalItems = await this.userModel.countDocuments(filter);
     const totalPages = Math.ceil(totalItems / pageSize);
     const skip = (current - 1) * pageSize
 
@@ -74,11 +74,11 @@ export class UsersService {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    return await this.userModel.updateOne({_id: id}, {...updateUserDto});
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string) {
+    return await this.userModel.deleteOne({_id: id});
   }
 }
