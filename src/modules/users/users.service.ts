@@ -6,6 +6,9 @@ import { InjectModel } from '@nestjs/mongoose'
 import { User } from './schemas/user.schema';
 import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
+import { CreateAuthDto } from '@/auth/dto/create-auth.dto';
+import dayjs from 'dayjs';
+import {v4 as uuidv4} from 'uuid'
 
 @Injectable()
 export class UsersService {
@@ -18,7 +21,7 @@ export class UsersService {
     try {
       const { name, email, password, phone, address, image } = createUserDto;
 
-      const isUserExist = await this.IsUserExists(email, phone); // Thêm `await`
+      const isUserExist = await this.IsUserExists(email);
       if (isUserExist) {
         throw new BadRequestException(`Email or number phone already exists`);
       }
@@ -43,8 +46,8 @@ export class UsersService {
     }
   }
 
-  async IsUserExists(email: string, phone: string): Promise<boolean> {
-    const user = await this.userModel.findOne({ email, phone });
+  async IsUserExists(email: string): Promise<boolean> {
+    const user = await this.userModel.findOne({ email });
     return !!user;
   }
 
@@ -77,7 +80,7 @@ export class UsersService {
     return await this.userModel.findOne({ _id: id }).select("-password");
   }
 
-  async findByEmail(email:string){
+  async findByEmail(email: string) {
     return await this.userModel.findOne({ email: email });
   }
 
@@ -95,5 +98,34 @@ export class UsersService {
     }
 
     return await this.userModel.deleteOne({ _id: id });
+  }
+
+  async handleRegister(registerDto: CreateAuthDto) {
+    try {
+      const { name, email, password } = registerDto;
+
+      const isUserExist = await this.IsUserExists(email); // Thêm `await`
+      if (isUserExist) {
+        throw new BadRequestException(`Email already exists`);
+      }
+
+      const hashPassword = await hashPasswordHandler(password);
+
+      const user = await this.userModel.create({
+        name,
+        email,
+        password: hashPassword,
+        isActive: false,
+        codeId: uuidv4(),
+        codeExpired: dayjs().add(5, 'minutes'),
+      });
+
+      return {
+        _id: user._id,
+      };
+    } catch (error) {
+      console.error('Error creating user:', error.message);
+      throw new BadRequestException(error.message || 'An error occurred');
+    }
   }
 }

@@ -12,7 +12,7 @@ export class CreateUserDto {
   @MinLength(6, {message: 'Password should be atleast 6 charactor'})
   password: string;
 
-  @IsNotEmpty({ message: 'Phone should not empty' })
+  // @IsNotEmpty({ message: 'Phone should not empty' })
   @Matches(/^((\+84|0)[3|5|7|8|9])+([0-9]{8})$/, { 
     message: 'Phone number is invalid' 
   })
