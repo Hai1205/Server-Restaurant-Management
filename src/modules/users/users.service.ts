@@ -4,9 +4,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose'
 import { User } from './schemas/user.schema';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
-import { query } from 'express';
 
 @Injectable()
 export class UsersService {
@@ -67,18 +66,34 @@ export class UsersService {
       .skip(skip)
       .select("-password")
       .sort(sort as any)
-    return {result, totalPages};
+    return { result, totalPages };
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async findOne(id: string) {
+    if (!mongoose.isValidObjectId(id)) {
+      throw new BadRequestException("Id is invalid");
+    }
+
+    return await this.userModel.findOne({ _id: id }).select("-password");
+  }
+
+  async findByEmail(email:string){
+    return await this.userModel.findOne({ email: email });
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
-    return await this.userModel.updateOne({_id: id}, {...updateUserDto});
+    if (!mongoose.isValidObjectId(id)) {
+      throw new BadRequestException("Id is invalid");
+    }
+
+    return await this.userModel.updateOne({ _id: id }, { ...updateUserDto });
   }
 
   async remove(id: string) {
-    return await this.userModel.deleteOne({_id: id});
+    if (!mongoose.isValidObjectId(id)) {
+      throw new BadRequestException("Id is invalid");
+    }
+
+    return await this.userModel.deleteOne({ _id: id });
   }
 }

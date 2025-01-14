@@ -10,3 +10,11 @@ export const hashPasswordHandler = async (plainPassword: string) => {
         console.log(error);
     }
 }
+
+export const comparePasswordHandler = async (plainPassword: string, hashPassword: string) => {
+    try {
+        return await bcypt.compare(plainPassword, hashPassword)
+    } catch (error) {
+        console.log(error);
+    }
+}

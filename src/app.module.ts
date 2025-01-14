@@ -11,6 +11,7 @@ import { OrdersModule } from '@/modules/orders/orders.module';
 import { RestaurantsModule } from '@/modules/restaurants/restaurants.module';
 import { ReviewsModule } from '@/modules/reviews/reviews.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { AuthModule } from '@/auth/auth.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UsersModule } from '@/modules/users/users.module';
       },
       inject: [ConfigService],
     }),
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
