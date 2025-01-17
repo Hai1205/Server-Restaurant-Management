@@ -1,4 +1,4 @@
-import { Allow, IsEmail, IsNotEmpty, IsPhoneNumber, IsString, Matches, MinLength } from 'class-validator';
+import { Allow, IsEmail, IsNotEmpty, IsString, Matches, MinLength } from 'class-validator';
 
 export class CreateUserDto {
   @IsNotEmpty({ message: 'Name should not empty' })
@@ -24,3 +24,6 @@ export class CreateUserDto {
   @Allow()
   image: string;
 }
+
+
+

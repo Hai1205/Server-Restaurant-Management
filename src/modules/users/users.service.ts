@@ -6,7 +6,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { User } from './schemas/user.schema';
 import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
-import { CreateAuthDto } from '@/auth/dto/create-auth.dto';
+import { CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid'
 import { MailerService } from '@nestjs-modules/mailer';
@@ -103,6 +103,11 @@ export class UsersService {
     return await this.userModel.deleteOne({ _id: id });
   }
 
+  generateRandomNumber() {
+    const randomCode = Math.floor(Math.random() * 1000000); 
+    return randomCode.toString().padStart(6, '0');
+  }
+
   async handleRegister(registerDto: CreateAuthDto) {
     try {
       const { name, email, password } = registerDto;
@@ -113,7 +118,7 @@ export class UsersService {
       }
 
       const hashPassword = await hashPasswordHandler(password);
-      const codeId = uuidv4();
+      const codeId = this.generateRandomNumber();
       const codeExpired = dayjs().add(5, 'minutes')
       const user = await this.userModel.create({
         name,
@@ -140,6 +145,30 @@ export class UsersService {
       return {
         _id: user._id,
       };
+    } catch (error) {
+      console.error('Error creating user:', error.message);
+      throw new BadRequestException(error.message || 'An error occurred');
+    }
+  }
+
+  async handleCheckCode(codeAuthDto: CodeAuthDto) {
+    try {
+      const { _id, code } = codeAuthDto;
+
+      const user = await this.userModel.findOne(
+        {
+          _id: _id,
+          codeId: code
+        },
+      );
+
+      if (!user || !dayjs().isBefore(user.codeExpired)) {
+        throw new BadRequestException("The authentication code is invalid or has expired");
+      }
+
+      const result = await this.userModel.updateOne({ _id: _id }, { isActive: true, })
+
+      return { result };
     } catch (error) {
       console.error('Error creating user:', error.message);
       throw new BadRequestException(error.message || 'An error occurred');

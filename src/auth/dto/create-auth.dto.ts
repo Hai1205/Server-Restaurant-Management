@@ -11,3 +11,11 @@ export class CreateAuthDto {
     @IsNotEmpty({ message: 'Name should not empty' })
     name: string;
 }
+
+export class CodeAuthDto {
+    @IsNotEmpty({ message: 'id should not empty' })
+    _id: string;
+
+    @IsNotEmpty({ message: 'Code should not empty' })
+    code: string;
+}

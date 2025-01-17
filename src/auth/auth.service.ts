@@ -1,10 +1,9 @@
 
 import { comparePasswordHandler } from '@/helpers/util';
-import { User } from '@/modules/users/schemas/user.schema';
 import { UsersService } from '@/modules/users/users.service';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CreateAuthDto } from './dto/create-auth.dto';
+import { CodeAuthDto, CreateAuthDto } from './dto/create-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -15,20 +14,34 @@ export class AuthService {
 
   async validateUser(email: string, pass: string): Promise<any> {
     const user = await this.usersService.findByEmail(email);
-    const isValidPassword = await comparePasswordHandler(pass, user.password);
+    if (!user) return null;
     
-    if (!user || !isValidPassword) return null;
+    const isValidPassword = await comparePasswordHandler(pass, user.password);
+    if (!isValidPassword) return null;
+    
     return user;
   }
-  
+
   async login(user: any) {
     const payload = { sub: user._id, email: user.email }
     const access_token = await this.jwtService.signAsync(payload);
 
-    return { access_token: access_token }
+    return {
+      user: {
+        email: user.email,
+        _id: user._id,
+        name: user.name,
+      },
+      access_token: access_token
+    }
   }
 
-  handleRegister = async(registerDto: CreateAuthDto)=> {
+  handleRegister = async (registerDto: CreateAuthDto) => {
     return await this.usersService.handleRegister(registerDto)
   }
+
+  handleCheckCode = async (codeAuthDto: CodeAuthDto) => {
+    return await this.usersService.handleCheckCode(codeAuthDto)
+  }
 }
+
