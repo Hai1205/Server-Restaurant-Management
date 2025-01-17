@@ -104,7 +104,7 @@ export class UsersService {
   }
 
   generateRandomNumber() {
-    const randomCode = Math.floor(Math.random() * 1000000); 
+    const randomCode = Math.floor(Math.random() * 1000000);
     return randomCode.toString().padStart(6, '0');
   }
 
@@ -129,18 +129,7 @@ export class UsersService {
         codeExpired: codeExpired,
       });
 
-      this.mailerService
-        .sendMail({
-          to: user.email, // list of receivers
-          subject: 'Activate your account', // Subject line
-          template: "register.hbs",
-          context: {
-            name: user?.name ?? user.email,
-            activationCode: codeId
-          }
-        })
-        .then(() => { })
-        .catch(() => { });
+      this.sendEmail(user, codeId)
 
       return {
         _id: user._id,
@@ -149,6 +138,21 @@ export class UsersService {
       console.error('Error creating user:', error.message);
       throw new BadRequestException(error.message || 'An error occurred');
     }
+  }
+
+  sendEmail(user: User, codeId: string) {
+    this.mailerService
+      .sendMail({
+        to: user.email, // list of receivers
+        subject: 'Activate your account', // Subject line
+        template: "register.hbs",
+        context: {
+          name: user?.name ?? user.email,
+          activationCode: codeId
+        }
+      })
+      .then(() => { })
+      .catch(() => { });
   }
 
   async handleCheckCode(codeAuthDto: CodeAuthDto) {
@@ -169,6 +173,34 @@ export class UsersService {
       const result = await this.userModel.updateOne({ _id: _id }, { isActive: true, })
 
       return { result };
+    } catch (error) {
+      console.error('Error creating user:', error.message);
+      throw new BadRequestException(error.message || 'An error occurred');
+    }
+  }
+
+  async handleRetryActive(email: string) {
+    try {
+      const user = await this.userModel.findOne({ email: email });
+      if (!user) {
+        throw new BadRequestException(`Email not exists`);
+      }
+
+      if (user.isActive) {
+        throw new BadRequestException(`Account has been actived`);
+      }
+
+      const codeId = this.generateRandomNumber();
+      const codeExpired = dayjs().add(5, 'minutes')
+
+      await user.updateOne({
+        codeId: codeId,
+        codeExpired: codeExpired,
+      })
+
+      this.sendEmail(user, codeId)
+
+      return { _id: user._id, };
     } catch (error) {
       console.error('Error creating user:', error.message);
       throw new BadRequestException(error.message || 'An error occurred');

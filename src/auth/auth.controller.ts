@@ -25,6 +25,12 @@ export class AuthController {
   }
 
   @Public()
+  @Post('retry-active')
+  retryActive(@Body("email") email: string) {
+    return this.authService.handleRetryActive(email);
+  }
+
+  @Public()
   @Post('register')
   register(@Body() registerDto: CreateAuthDto) {
     return this.authService.handleRegister(registerDto);
