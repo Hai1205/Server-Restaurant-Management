@@ -6,7 +6,7 @@ import { InjectModel } from '@nestjs/mongoose'
 import { User } from './schemas/user.schema';
 import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
-import { CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
+import { ChangePasswordAuthDto, CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
 import dayjs from 'dayjs';
 import { v4 as uuidv4 } from 'uuid'
 import { MailerService } from '@nestjs-modules/mailer';
@@ -84,7 +84,9 @@ export class UsersService {
   }
 
   async findByEmail(email: string) {
-    return await this.userModel.findOne({ email: email });
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.userModel.findOne({ email: normalizedEmail });
+    return user;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -178,29 +180,81 @@ export class UsersService {
       throw new BadRequestException(error.message || 'An error occurred');
     }
   }
-
+  
   async handleRetryActive(email: string) {
     try {
       const user = await this.userModel.findOne({ email: email });
+      console.log(email)
+      console.log(user)
+      if (!user) {
+        throw new BadRequestException(`Email not exists`);
+      }
+      
+      if (user.isActive) {
+        throw new BadRequestException(`Account has been actived`);
+      }
+      
+      const codeId = this.generateRandomNumber();
+      const codeExpired = dayjs().add(5, 'minutes')
+      
+      await user.updateOne({
+        codeId: codeId,
+        codeExpired: codeExpired,
+      })
+      
+      this.sendEmail(user, codeId)
+      
+      return { _id: user._id, };
+    } catch (error) {
+      console.error('Error creating user:', error.message);
+      throw new BadRequestException(error.message || 'An error occurred');
+    }
+  }
+  
+  async handleRetryPassword(email: string) {
+    try {
+      const user = await this.userModel.findOne({ email: email });
+      console.log(email)
+      console.log(user)
       if (!user) {
         throw new BadRequestException(`Email not exists`);
       }
 
-      if (user.isActive) {
-        throw new BadRequestException(`Account has been actived`);
-      }
-
       const codeId = this.generateRandomNumber();
       const codeExpired = dayjs().add(5, 'minutes')
-
+      
       await user.updateOne({
         codeId: codeId,
         codeExpired: codeExpired,
       })
 
       this.sendEmail(user, codeId)
-
+      
       return { _id: user._id, };
+    } catch (error) {
+      console.error('Error creating user:', error.message);
+      throw new BadRequestException(error.message || 'An error occurred');
+    }
+  }
+  async handleChangePassword(changePasswordAuthDto: ChangePasswordAuthDto) {
+    try {
+      const { _id, code, password, rePassword } = changePasswordAuthDto;
+  
+      const user = await this.userModel.findOne(
+        {
+          _id: _id,
+          codeId: code
+        },
+      );
+  
+      if (!user || !dayjs().isBefore(user.codeExpired)) {
+        throw new BadRequestException("The authentication code is invalid or has expired");
+      }
+
+      const hashPassword = await hashPasswordHandler(password);
+      const result = await this.userModel.updateOne({ _id: _id }, { password: hashPassword });
+  
+      return { result };
     } catch (error) {
       console.error('Error creating user:', error.message);
       throw new BadRequestException(error.message || 'An error occurred');
