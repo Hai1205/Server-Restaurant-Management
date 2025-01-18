@@ -8,7 +8,6 @@ import mongoose, { Model } from 'mongoose';
 import aqp from 'api-query-params';
 import { ChangePasswordAuthDto, CodeAuthDto, CreateAuthDto } from '@/auth/dto/create-auth.dto';
 import dayjs from 'dayjs';
-import { v4 as uuidv4 } from 'uuid'
 import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
@@ -54,25 +53,65 @@ export class UsersService {
     return !!user;
   }
 
+  // async findAll(query: string, current: number, pageSize: number) {
+  //   const { filter, sort } = aqp(query)
+
+  //   delete filter.current
+  //   delete filter.pageSize
+  //   if (!current || current < 1) current = 1
+  //   if (!pageSize || pageSize < 1) pageSize = 5
+
+  //   const totalItems = await this.userModel.countDocuments(filter);
+  //   const totalPages = Math.ceil(totalItems / pageSize);
+  //   const skip = (current - 1) * pageSize
+
+  //   const result = await this.userModel
+  //     .find(filter)
+  //     .limit(pageSize)
+  //     .skip(skip)
+  //     .select("-password")
+  //     .sort(sort as any)
+
+  //   return { 
+  //     meta: {
+  //       current: current,
+  //       pageSize: pageSize,
+  //       pages: totalPages,
+  //       total: totalItems
+  //     },
+  //     result
+  //    };
+  // }
+  
   async findAll(query: string, current: number, pageSize: number) {
-    const { filter, sort } = aqp(query)
+    const { filter, sort } = aqp(query);
+    if (filter.current) delete filter.current;
+    if (filter.pageSize) delete filter.pageSize;
 
-    delete filter.current
-    delete filter.pageSize
-    if (!current || current < 1) current = 1
-    if (!pageSize || pageSize < 1) pageSize = 5
+    if (!current) current = 1;
+    if (!pageSize) pageSize = 10;
 
-    const totalItems = await this.userModel.countDocuments(filter);
+    const totalItems = (await this.userModel.find(filter)).length;
     const totalPages = Math.ceil(totalItems / pageSize);
-    const skip = (current - 1) * pageSize
 
-    const result = await this.userModel
+    const skip = (current - 1) * (pageSize);
+
+    const results = await this.userModel
       .find(filter)
       .limit(pageSize)
       .skip(skip)
       .select("-password")
-      .sort(sort as any)
-    return { result, totalPages };
+      .sort(sort as any);
+
+    return {
+      meta: {
+        current: current, //trang hiện tại
+        pageSize: pageSize, //số lượng bản ghi đã lấy
+        pages: totalPages,  //tổng số trang với điều kiện query
+        total: totalItems // tổng số phần tử (số bản ghi)
+      },
+      results //kết quả query
+    }
   }
 
   async findOne(id: string) {
